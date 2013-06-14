@@ -1,0 +1,195 @@
+ArDec Tutorial
+Updated 29 April 2013
+
+Introduction
+This document contains simple illustrative examples of usage of the R-package ArDec.
+The pakage ArDec implements a time series decomposition procedure based on the dynamic linear
+representation of an autoregressive process which is particularly useful for the extraction of trend and
+periodic components.
+
+Getting started
+Download the package from CRAN (http://cran.r-project.org) or in R
+> install.packages(“ArDec”)
+Load the library
+> library(ArDec)
+Start the help system
+> help.start()
+
+Data
+Load the example data (monthly temperature in Central England from 1723-1970)
+> data(tempEng)
+Check the structure of this R object
+> str(tempEng)
+> Time-Series [1:2976] from 1723 to 1971: 1.1 4.4 7.5 8.9 11.7 15 15.3 15.6
+Plot the data
+> plot(tempEng)
+
+1
+
+Some exploratory time series analysis
+> cpgram(tempEng)
+> acf(tempEng)
+
+The time series plot, the cumulative periodogram and the sample autocorrelation function show a strong
+annual periodicity in the data. The next section illustrates how to decompose this time series using
+ArDec
+
+ArDec decomposition
+1. Fitting an autoregressive process to the data
+> model=ardec.lm(tempEng)
+In this case the method used to fit the model is not specified, so the Burg method is used. A big model
+(order of the autoregressive parameter p = 34) is fitted to the time series of temperature in central
+England
+> model
+Call: lm(formula = y ~ -1 + X, x = TRUE)
+Coefficients:
+2
+
+X1
+0.2942447
+
+X2
+0.0480123
+
+X3
+-0.0166935
+
+X4
+-0.0050246
+
+X5
+-0.0119893
+
+X6
+0.0090816
+
+X7
+-0.0233188
+X13
+0.0549423
+X19
+-0.0002747
+
+X8
+-0.0382977
+X14
+-0.0598093
+X20
+-0.0513517
+
+X9
+0.0053468
+X15
+-0.0373727
+X21
+0.0027275
+
+X10
+0.0562919
+X16
+-0.0317938
+X22
+0.0270081
+
+X11
+0.0622145
+X17
+-0.0089850
+X23
+0.0493173
+
+X12
+0.1043717
+X18
+-0.0259883
+X24
+0.1266952
+
+X25
+0.1025295
+X31
+-0.0130935
+
+X26
+0.0093870
+X32
+-0.0382225
+
+X27
+-0.0639103
+X33
+-0.0088768
+
+X28
+-0.0136526
+X34
+0.0443993
+
+X29
+-0.0274514
+
+X30
+-0.0336428
+
+2. ArDec core decomposition, based on the parameters estimated above
+> coef=model$coefficients
+> decomposition=ardec(tempEng,coef)
+The previous command gives an object (decomposition) of class ardec
+> str(decomposition)
+List of 3
+$ period
+: num [1:34] 12 -12 5.99 -5.99 8.42 ...
+$ modulus : num [1:34] 1 1 0.964 0.964 0.946 ...
+$ comps
+: cplx [1:34, 1:2976] NA NA NA ...
+This object is a list, containing information on the estimated components (period, modulus or damping
+factor and all the 34 components themselves).
+The output includes both signs of the imaginary eigenvalues obtained from the canonical matrix (see
+the references for the mathematical details), so the period shows the two (positive and negative) values,
+for the same modulus (real part of the eigenvalue). Please note that although ArDec extracts as many
+components as the estimated order for the autoregressive process (in this case 34), not all are of interest
+or meaningful - only the components least damped (with modulus closer to 1) are relevant.
+
+3. Extraction of periodic components
+The function ardec.periodic retrieves the components for a given specified period
+> output=ardec.periodic(tempEng,12)
+The result is a list with the retrieved ArDec component
+> str(output)
+List of 3
+$ period
+: num 12
+$ modulus : num 1
+$ component: num [1:2976] NA NA NA NA NA NA NA NA NA NA ...
+The component can be set as an independent R object
+> annual=ts(output$component,start=1723,frequency=12)
+3
+
+or for the semi-annual component
+
+> semiannual=ts(ardec.periodic(tempEng,6)$component,start=1723,frequency=12)
+The obtained components can be further analysed
+> cpgram(annual)
+> cpgram (semiannual)
+
+> plot(annual,xlab="",ylab="",main="annual component")
+> plot(semiannual,xlab="",ylab="",main="semiannual component")
+
+4. Extraction of trend component
+
+4
+
+> trend=ts(ardec.trend(tempEng)$trend,start=1723,frequency=12)
+> plot(tempEng,xlab="",ylab="",main="trend component")
+> lines(trend+mean(tempEng),col=4,lwd=2)
+> plot(tempEng-annual,xlab="",ylab="",main="trend component")
+> lines(trend+mean(tempEng),col=4,lwd=2)
+
+References
+When using this software please cite
+• Barbosa, SM, Silva, ME, Fernandes, MJ (2008), Changing seasonality in North Atlantic coastal
+sea level from the analysis of long tide gauge records. Tellus, 60A, 165-177.
+• West, M. (1997), Time series decomposition. Biometrika, 84, 489-494.
+
+5
+
+

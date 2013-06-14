@@ -1,0 +1,13 @@
+914348adada3383be67d0c50d9494795 *DESCRIPTION
+8b54e5a89fbda3af5e077053d40bec76 *NAMESPACE
+3fc5d124a36e10b0f6a15e1d6c670bca *R/ardec.R
+35ac6857038162c05612eb095cc0a84a *R/ardec.lm.R
+1381e13d1ff4b05df669457e6f6cc341 *R/ardec.periodic.R
+95ea9707da408c001d61c9e9020a9071 *R/ardec.trend.R
+18f83f99b0fa57ff63e25cd4a797f0a2 *data/tempEng.rda
+e6eefce73d68c921b6566b199e8f0778 *inst/doc/ArdecIntro.pdf
+f83984470cd3e9e593957a7e6319edc0 *man/ardec.Rd
+e60b353f7b0324ff28e3a6e256f1c5d6 *man/ardec.lm.Rd
+887eccd4216d1bf4112979d2380cb697 *man/ardec.periodic.Rd
+decbbf82649720f4b7258e351dce45fc *man/ardec.trend.Rd
+2cc79feb8a5ab5604f32ea8afd35c191 *man/tempEng.Rd

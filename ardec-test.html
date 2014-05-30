@@ -1,0 +1,695 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<title><b>outorg-edit-buffer</b></title>
+<!-- 2013-06-18 Di 02:02 -->
+<meta  http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta  name="generator" content="Org-mode" />
+
+<script type="text/javascript">
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this tag.
+
+Copyright (C) 2012  Free Software Foundation, Inc.
+
+The JavaScript code in this tag is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU GPL) as published by the Free Software
+Foundation, either version 3 of the License, or (at your option)
+any later version.  The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+
+@licend  The above is the entire license notice
+for the JavaScript code in this tag.
+*/
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+<script type="text/javascript" src="http://orgmode.org/mathjax/MathJax.js"></script>
+<script type="text/javascript">
+<!--/*--><![CDATA[/*><!--*/
+    MathJax.Hub.Config({
+        // Only one of the two following lines, depending on user settings
+        // First allows browser-native MathML display, second forces HTML/CSS
+        //  config: ["MMLorHTML.js"], jax: ["input/TeX"],
+            jax: ["input/TeX", "output/HTML-CSS"],
+        extensions: ["tex2jax.js","TeX/AMSmath.js","TeX/AMSsymbols.js",
+                     "TeX/noUndefined.js"],
+        tex2jax: {
+            inlineMath: [ ["\\(","\\)"] ],
+            displayMath: [ ['$$','$$'], ["\\[","\\]"], ["\\begin{displaymath}","\\end{displaymath}"] ],
+            skipTags: ["script","noscript","style","textarea","pre","code"],
+            ignoreClass: "tex2jax_ignore",
+            processEscapes: false,
+            processEnvironments: true,
+            preview: "TeX"
+        },
+        showProcessingMessages: true,
+        displayAlign: "center",
+        displayIndent: "2em",
+
+        "HTML-CSS": {
+             scale: 100,
+             availableFonts: ["STIX","TeX"],
+             preferredFont: "TeX",
+             webFont: "TeX",
+             imageFont: "TeX",
+             showMathMenu: true,
+        },
+        MMLorHTML: {
+             prefer: {
+                 MSIE:    "MML",
+                 Firefox: "MML",
+                 Opera:   "HTML",
+                 other:   "HTML"
+             }
+        }
+    });
+/*]]>*///-->
+</script>
+</head>
+<body>
+<div id="content">
+<h1 class="title"><b>outorg-edit-buffer</b></h1>
+<div id="table-of-contents">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents">
+<ul>
+<li><a href="#sec-1">1. ardec</a>
+<ul>
+<li><a href="#sec-1-1">1.1. meta</a></li>
+<li><a href="#sec-1-2">1.2. man</a>
+<ul>
+<li><a href="#sec-1-2-1">1.2.1. Description</a></li>
+<li><a href="#sec-1-2-2">1.2.2. Usage</a></li>
+<li><a href="#sec-1-2-3">1.2.3. Arguments</a></li>
+<li><a href="#sec-1-2-4">1.2.4. Details</a></li>
+<li><a href="#sec-1-2-5">1.2.5. Value</a></li>
+<li><a href="#sec-1-2-6">1.2.6. References</a></li>
+<li><a href="#sec-1-2-7">1.2.7. Examples</a></li>
+</ul>
+</li>
+<li><a href="#sec-1-3">1.3. R</a></li>
+<li><a href="#sec-1-4">1.4. data</a></li>
+</ul>
+</li>
+<li><a href="#sec-2">2. ardec.lm</a>
+<ul>
+<li><a href="#sec-2-1">2.1. meta</a></li>
+<li><a href="#sec-2-2">2.2. man</a>
+<ul>
+<li><a href="#sec-2-2-1">2.2.1. Description</a></li>
+<li><a href="#sec-2-2-2">2.2.2. Usage</a></li>
+<li><a href="#sec-2-2-3">2.2.3. Arguments</a></li>
+<li><a href="#sec-2-2-4">2.2.4. Value</a></li>
+<li><a href="#sec-2-2-5">2.2.5. References</a></li>
+<li><a href="#sec-2-2-6">2.2.6. Examples</a></li>
+</ul>
+</li>
+<li><a href="#sec-2-3">2.3. R</a></li>
+</ul>
+</li>
+<li><a href="#sec-3">3. ardec.periodic</a>
+<ul>
+<li><a href="#sec-3-1">3.1. meta</a></li>
+<li><a href="#sec-3-2">3.2. man</a>
+<ul>
+<li><a href="#sec-3-2-1">3.2.1. Description</a></li>
+<li><a href="#sec-3-2-2">3.2.2. Usage</a></li>
+<li><a href="#sec-3-2-3">3.2.3. Arguments</a></li>
+<li><a href="#sec-3-2-4">3.2.4. Value</a></li>
+<li><a href="#sec-3-2-5">3.2.5. Examples</a></li>
+</ul>
+</li>
+<li><a href="#sec-3-3">3.3. R</a></li>
+</ul>
+</li>
+<li><a href="#sec-4">4. ardec.trend</a>
+<ul>
+<li><a href="#sec-4-1">4.1. meta</a></li>
+<li><a href="#sec-4-2">4.2. man</a>
+<ul>
+<li><a href="#sec-4-2-1">4.2.1. Description</a></li>
+<li><a href="#sec-4-2-2">4.2.2. Usage</a></li>
+<li><a href="#sec-4-2-3">4.2.3. Arguments</a></li>
+<li><a href="#sec-4-2-4">4.2.4. Value</a></li>
+<li><a href="#sec-4-2-5">4.2.5. Examples</a></li>
+</ul>
+</li>
+<li><a href="#sec-4-3">4.3. R</a></li>
+</ul>
+</li>
+<li><a href="#sec-5">5. tempEng</a>
+<ul>
+<li><a href="#sec-5-1">5.1. meta</a></li>
+<li><a href="#sec-5-2">5.2. man</a>
+<ul>
+<li><a href="#sec-5-2-1">5.2.1. Description</a></li>
+<li><a href="#sec-5-2-2">5.2.2. Usage</a></li>
+<li><a href="#sec-5-2-3">5.2.3. Format</a></li>
+<li><a href="#sec-5-2-4">5.2.4. Examples</a></li>
+</ul>
+</li>
+<li><a href="#sec-5-3">5.3. R</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-sec-1" class="outline-2">
+<h2 id="sec-1"><span class="section-number-2">1</span> ardec</h2>
+<div class="outline-text-2" id="text-1">
+</div><div id="outline-container-sec-1-1" class="outline-3">
+<h3 id="sec-1-1"><span class="section-number-3">1.1</span> meta</h3>
+<div class="outline-text-3" id="text-1-1">
+</div>
+</div>
+<div id="outline-container-sec-1-2" class="outline-3">
+<h3 id="sec-1-2"><span class="section-number-3">1.2</span> man</h3>
+<div class="outline-text-3" id="text-1-2">
+</div><div id="outline-container-sec-1-2-1" class="outline-4">
+<h4 id="sec-1-2-1"><span class="section-number-4">1.2.1</span> Description</h4>
+<div class="outline-text-4" id="text-1-2-1">
+<p>
+Decomposition of a time series into latent subseries from a fitted
+autoregressive model
+</p>
+</div>
+</div>
+<div id="outline-container-sec-1-2-2" class="outline-4">
+<h4 id="sec-1-2-2"><span class="section-number-4">1.2.2</span> Usage</h4>
+<div class="outline-text-4" id="text-1-2-2">
+<pre class="example">
+ardec(x, coef, ...)
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-1-2-3" class="outline-4">
+<h4 id="sec-1-2-3"><span class="section-number-4">1.2.3</span> Arguments</h4>
+<div class="outline-text-4" id="text-1-2-3">
+<dl class="org-dl">
+<dt> x </dt><dd>time series
+</dd>
+<dt> coef </dt><dd>autoregressive parameters of AR(p) modebl
+</dd>
+<dt> &#x2026; </dt><dd>additional arguments for specific methods
+</dd>
+</dl>
+</div>
+</div>
+<div id="outline-container-sec-1-2-4" class="outline-4">
+<h4 id="sec-1-2-4"><span class="section-number-4">1.2.4</span> Details</h4>
+<div class="outline-text-4" id="text-1-2-4">
+<p>
+If an observed time series can be adequately described by an (eventually high
+order) autoregressive AR(p) process, a constructive result (West, 1997) yields
+a time series decomposition in terms of latent components following either
+AR(1) or AR(2) processes depending on the eigenvalues of the state evolution
+matrix.
+</p>
+
+<p>
+Complex eigenvalues r exp(iw) correspond to pseudo-periodic oscillations as a
+damped sine wave with fixed period (2pi/w) and damping factor r. Real
+eigenvalues correspond to a first order autoregressive process with parameter
+r.
+</p>
+</div>
+</div>
+<div id="outline-container-sec-1-2-5" class="outline-4">
+<h4 id="sec-1-2-5"><span class="section-number-4">1.2.5</span> Value</h4>
+<div class="outline-text-4" id="text-1-2-5">
+<p>
+A list with components: 
+</p>
+
+<dl class="org-dl">
+<dt> period </dt><dd>periods of latent components
+</dd>
+<dt> modulus </dt><dd>damping factors of latent components
+</dd>
+<dt> comps </dt><dd>matrix of latent components
+</dd>
+</dl>
+</div>
+</div>
+<div id="outline-container-sec-1-2-6" class="outline-4">
+<h4 id="sec-1-2-6"><span class="section-number-4">1.2.6</span> References</h4>
+<div class="outline-text-4" id="text-1-2-6">
+</div>
+</div>
+<div id="outline-container-sec-1-2-7" class="outline-4">
+<h4 id="sec-1-2-7"><span class="section-number-4">1.2.7</span> Examples</h4>
+<div class="outline-text-4" id="text-1-2-7">
+<div class="org-src-container">
+
+<pre class="src src-R">data(tempEng)
+coef=ardec.lm(tempEng)$coefficients
+</pre>
+</div>
+
+<p>
+warning: running the next command can be time comsuming!
+</p>
+<div class="org-src-container">
+
+<pre class="src src-R">decomposition=ardec(tempEng,coef)
+</pre>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-1-3" class="outline-3">
+<h3 id="sec-1-3"><span class="section-number-3">1.3</span> R</h3>
+<div class="outline-text-3" id="text-1-3">
+<div class="org-src-container">
+
+<pre class="src src-R"><span style="color: #87cefa;">ardec</span> <span style="color: #7fffd4;">&lt;-</span> <span style="color: #00ffff;">function</span>(x,coef, ...) {
+
+    dat=x-mean(x)
+    p=length(coef)
+    ndat=length(x)
+
+    G=matrix(nrow=p,ncol=p)
+
+    G[1,]=coef
+    G[seq(2,p),seq(1,p-1)]=diag(1,(p-1))
+    G[seq(2,p),p]=0
+
+    modulus=Mod(eigen(G)[[1]])
+    lambda=2*pi/Arg(eigen(G)[[1]])
+
+    eigenvalues=eigen(G)
+    A=diag(eigenvalues[[1]])
+    E=eigenvalues[[2]]
+    B=solve(E)
+    F=rep(<span style="color: #98fb98;">NA</span>,p)
+    F[1]=1
+    F[seq(2,p)]=0
+    a=t(E) %*% F
+    d=diag(as.vector(a))
+    H=d %*% B
+
+    Z=matrix(nrow=p,ncol=ndat)
+    Z[1,]=dat
+    <span style="color: #00ffff;">for</span> (i <span style="color: #00ffff;">in</span> seq(1,p-1)){
+        Z[i+1,]=as.vector(filter(dat,c(rep(0,i),1), method=<span style="color: #ffa07a;">"convolution"</span>,
+        sides=1))}
+
+    g=matrix(nrow=p,ncol=ndat)
+    <span style="color: #00ffff;">for</span> (j <span style="color: #00ffff;">in</span> seq(1,p)){
+        <span style="color: #00ffff;">for</span> (t <span style="color: #00ffff;">in</span> seq(1,ndat)){
+            g[j,t]=H[j, ] %*% Z[,t] }}
+
+
+    <span style="color: #00ffff;">return</span>(list(period=lambda,modulus=modulus,comps=g))
+}
+</pre>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-1-4" class="outline-3">
+<h3 id="sec-1-4"><span class="section-number-3">1.4</span> data</h3>
+</div>
+</div>
+<div id="outline-container-sec-2" class="outline-2">
+<h2 id="sec-2"><span class="section-number-2">2</span> ardec.lm</h2>
+<div class="outline-text-2" id="text-2">
+</div><div id="outline-container-sec-2-1" class="outline-3">
+<h3 id="sec-2-1"><span class="section-number-3">2.1</span> meta</h3>
+<div class="outline-text-3" id="text-2-1">
+</div>
+</div>
+<div id="outline-container-sec-2-2" class="outline-3">
+<h3 id="sec-2-2"><span class="section-number-3">2.2</span> man</h3>
+<div class="outline-text-3" id="text-2-2">
+</div><div id="outline-container-sec-2-2-1" class="outline-4">
+<h4 id="sec-2-2-1"><span class="section-number-4">2.2.1</span> Description</h4>
+<div class="outline-text-4" id="text-2-2-1">
+<p>
+Function ardec.lm fits an autoregressive model of order p, AR(p) to a time
+series through a linear least squares regression.
+</p>
+</div>
+</div>
+<div id="outline-container-sec-2-2-2" class="outline-4">
+<h4 id="sec-2-2-2"><span class="section-number-4">2.2.2</span> Usage</h4>
+<div class="outline-text-4" id="text-2-2-2">
+<pre class="example">
+ardec.lm(x)
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-2-2-3" class="outline-4">
+<h4 id="sec-2-2-3"><span class="section-number-4">2.2.3</span> Arguments</h4>
+<div class="outline-text-4" id="text-2-2-3">
+<pre class="example">
+\item{x}{time series}
+
+# \item{R}{size of sample to be simulated from posterior}
+
+# \item{med}{logical, indicating if a median vector of autoregressive parameters
+# should be computed from the simulated sample}
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-2-2-4" class="outline-4">
+<h4 id="sec-2-2-4"><span class="section-number-4">2.2.4</span> Value</h4>
+<div class="outline-text-4" id="text-2-2-4">
+<pre class="example">
+For ardec.lm, an object of class "lm".
+
+# For ardec.lm.bayes an Rxp matrix containing the samples of autoregressive
+# coefficients as columns (if med=FALSE).
+
+# If med=TRUE, ardec.lm.bayes returns a single column matrix containing the
+# median vector of autoregressive parameters.
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-2-2-5" class="outline-4">
+<h4 id="sec-2-2-5"><span class="section-number-4">2.2.5</span> References</h4>
+<div class="outline-text-4" id="text-2-2-5">
+<p>
+\cite{west1995bayesian}
+</p>
+</div>
+</div>
+<div id="outline-container-sec-2-2-6" class="outline-4">
+<h4 id="sec-2-2-6"><span class="section-number-4">2.2.6</span> Examples</h4>
+</div>
+</div>
+
+<div id="outline-container-sec-2-3" class="outline-3">
+<h3 id="sec-2-3"><span class="section-number-3">2.3</span> R</h3>
+<div class="outline-text-3" id="text-2-3">
+<div class="org-src-container">
+
+<pre class="src src-R"><span style="color: #87cefa;">ardec.lm</span> <span style="color: #7fffd4;">&lt;-</span> <span style="color: #00ffff;">function</span>(x) {
+
+    <span style="color: #7fffd4;">require</span>(stats)
+
+    dat=x-mean(x)
+    ndat=length(dat)
+    <span style="color: #ff7f24;">## </span><span style="color: #ff7f24;">p=order of autoregressive model from AIC (burg method)</span>
+    p=ar(dat,method=<span style="color: #ffa07a;">"burg"</span>)[[1]]
+    <span style="color: #ff7f24;">## </span><span style="color: #ff7f24;">linear autoregressive model fit</span>
+    X=t(matrix(dat[rev(rep((1:p),ndat-p)+
+    rep((0:(ndat-p-1)),rep(p,ndat-p)))],p,ndat-p))
+    y=rev(dat[(p+1):ndat])
+    fit=lm(y~-1+X, x=<span style="color: #98fb98;">TRUE</span>)
+
+    <span style="color: #00ffff;">return</span>(fit)
+}
+</pre>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-3" class="outline-2">
+<h2 id="sec-3"><span class="section-number-2">3</span> ardec.periodic</h2>
+<div class="outline-text-2" id="text-3">
+</div><div id="outline-container-sec-3-1" class="outline-3">
+<h3 id="sec-3-1"><span class="section-number-3">3.1</span> meta</h3>
+<div class="outline-text-3" id="text-3-1">
+</div>
+</div>
+<div id="outline-container-sec-3-2" class="outline-3">
+<h3 id="sec-3-2"><span class="section-number-3">3.2</span> man</h3>
+<div class="outline-text-3" id="text-3-2">
+</div><div id="outline-container-sec-3-2-1" class="outline-4">
+<h4 id="sec-3-2-1"><span class="section-number-4">3.2.1</span> Description</h4>
+<div class="outline-text-4" id="text-3-2-1">
+<p>
+Function ardec.periodic extracts a periodic component from the autoregressive
+decomposition of a monthly time series.
+</p>
+</div>
+</div>
+<div id="outline-container-sec-3-2-2" class="outline-4">
+<h4 id="sec-3-2-2"><span class="section-number-4">3.2.2</span> Usage</h4>
+<div class="outline-text-4" id="text-3-2-2">
+<pre class="example">
+ardec.periodic(x, per, tol = 0.95)
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-3-2-3" class="outline-4">
+<h4 id="sec-3-2-3"><span class="section-number-4">3.2.3</span> Arguments</h4>
+<div class="outline-text-4" id="text-3-2-3">
+<dl class="org-dl">
+<dt> x </dt><dd>time series
+</dd>
+<dt> per </dt><dd>period of the component to be extracted
+</dd>
+<dt> tol </dt><dd>tolerance for the period of the component
+</dd>
+</dl>
+</div>
+</div>
+<div id="outline-container-sec-3-2-4" class="outline-4">
+<h4 id="sec-3-2-4"><span class="section-number-4">3.2.4</span> Value</h4>
+<div class="outline-text-4" id="text-3-2-4">
+<p>
+A list with components: 
+</p>
+
+<p>
+period :: period for the anual component
+modulus :: damping factor for the annual component
+component :: extracted component 
+</p>
+</div>
+</div>
+<div id="outline-container-sec-3-2-5" class="outline-4">
+<h4 id="sec-3-2-5"><span class="section-number-4">3.2.5</span> Examples</h4>
+<div class="outline-text-4" id="text-3-2-5">
+<div class="org-src-container">
+
+<pre class="src src-R"><span style="color: #ff7f24;">## </span><span style="color: #ff7f24;">warning: running the next command can be time comsuming!</span>
+data(tempEng)
+ardec.periodic(tempEng,per=12)
+<span style="color: #ff7f24;">## </span><span style="color: #ff7f24;">ardec.periodic.bayes(tempEng,per=12,R=2)</span>
+</pre>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-3-3" class="outline-3">
+<h3 id="sec-3-3"><span class="section-number-3">3.3</span> R</h3>
+<div class="outline-text-3" id="text-3-3">
+<div class="org-src-container">
+
+<pre class="src src-R"><span style="color: #87cefa;">ardec.periodic</span> <span style="color: #7fffd4;">&lt;-</span> <span style="color: #00ffff;">function</span>(x,per,tol=0.95){
+
+    <span style="color: #ff7f24;">## </span><span style="color: #ff7f24;">if(frequency(x)!=12){stop("monthly time series required")}</span>
+    <span style="color: #ff7f24;">## </span><span style="color: #ff7f24;">updated 29 Apr 2013</span>
+
+    fit=ardec.lm(x)
+
+    comp=ardec(x,fit$coefficients)
+
+    <span style="color: #00ffff;">if</span>(any(comp$period &gt; (per-tol) &amp; comp$period &lt; (per+tol))) {
+        candidates=which(comp$period &gt; (per-tol) &amp; comp$period &lt; (per+tol))
+        lper=candidates[which.max(comp$modulus[candidates])]
+        l=comp$period[lper]
+        m=comp$modulus[lper]
+        gt=Re(comp$comps[lper,]+comp$comps[lper+1,])   }
+
+    <span style="color: #00ffff;">return</span>(list(period=l,modulus=m,component=gt))
+
+}
+</pre>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-4" class="outline-2">
+<h2 id="sec-4"><span class="section-number-2">4</span> ardec.trend</h2>
+<div class="outline-text-2" id="text-4">
+</div><div id="outline-container-sec-4-1" class="outline-3">
+<h3 id="sec-4-1"><span class="section-number-3">4.1</span> meta</h3>
+<div class="outline-text-3" id="text-4-1">
+</div>
+</div>
+<div id="outline-container-sec-4-2" class="outline-3">
+<h3 id="sec-4-2"><span class="section-number-3">4.2</span> man</h3>
+<div class="outline-text-3" id="text-4-2">
+</div><div id="outline-container-sec-4-2-1" class="outline-4">
+<h4 id="sec-4-2-1"><span class="section-number-4">4.2.1</span> Description</h4>
+<div class="outline-text-4" id="text-4-2-1">
+<p>
+Function ardec.trend extracts the trend component from the autoregressive
+decomposition of a monthly time series.
+</p>
+</div>
+</div>
+<div id="outline-container-sec-4-2-2" class="outline-4">
+<h4 id="sec-4-2-2"><span class="section-number-4">4.2.2</span> Usage</h4>
+<div class="outline-text-4" id="text-4-2-2">
+<pre class="example">
+ardec.trend(x)
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-4-2-3" class="outline-4">
+<h4 id="sec-4-2-3"><span class="section-number-4">4.2.3</span> Arguments</h4>
+<div class="outline-text-4" id="text-4-2-3">
+<p>
+x :: time series
+</p>
+</div>
+</div>
+<div id="outline-container-sec-4-2-4" class="outline-4">
+<h4 id="sec-4-2-4"><span class="section-number-4">4.2.4</span> Value</h4>
+<div class="outline-text-4" id="text-4-2-4">
+<p>
+A list with components:
+</p>
+
+<p>
+modulus :: damping factor for the annual component
+trend:: trend component
+</p>
+</div>
+</div>
+<div id="outline-container-sec-4-2-5" class="outline-4">
+<h4 id="sec-4-2-5"><span class="section-number-4">4.2.5</span> Examples</h4>
+<div class="outline-text-4" id="text-4-2-5">
+<div class="org-src-container">
+
+<pre class="src src-R"><span style="color: #ff7f24;">## </span><span style="color: #ff7f24;">warning: running the next command can be time comsuming!</span>
+data(co2)
+ardec.trend(co2)
+<span style="color: #ff7f24;">## </span><span style="color: #ff7f24;">ardec.trend.bayes(co2,2)</span>
+</pre>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-4-3" class="outline-3">
+<h3 id="sec-4-3"><span class="section-number-3">4.3</span> R</h3>
+<div class="outline-text-3" id="text-4-3">
+<div class="org-src-container">
+
+<pre class="src src-R"><span style="color: #87cefa;">ardec.trend</span> <span style="color: #7fffd4;">&lt;-</span> <span style="color: #00ffff;">function</span>(x){
+
+    options(warn=-1)
+
+    fit=ardec.lm(x)
+
+
+    comp=ardec(x,fit$coefficients)
+
+    <span style="color: #00ffff;">if</span>(any(comp$period==<span style="color: #98fb98;">Inf</span>)){<span style="color: #00ffff;">warning</span>(<span style="color: #ffa07a;">"no trend component"</span>)}
+
+
+    <span style="color: #00ffff;">if</span>(any(comp$period ==<span style="color: #98fb98;">Inf</span>)){
+        l=comp$period[which(match(comp$period,<span style="color: #98fb98;">Inf</span>)==1)[1]]
+        m=comp$modulus[which(match(comp$period,<span style="color: #98fb98;">Inf</span>)==1)[1]]
+        gt=Re(comp$comps[which(match(comp$period,<span style="color: #98fb98;">Inf</span>)==1 )[1],])
+
+    }
+
+    <span style="color: #00ffff;">return</span>(list(modulus=m,trend=gt))
+
+}
+</pre>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-5" class="outline-2">
+<h2 id="sec-5"><span class="section-number-2">5</span> tempEng</h2>
+<div class="outline-text-2" id="text-5">
+</div><div id="outline-container-sec-5-1" class="outline-3">
+<h3 id="sec-5-1"><span class="section-number-3">5.1</span> meta</h3>
+<div class="outline-text-3" id="text-5-1">
+</div>
+</div>
+<div id="outline-container-sec-5-2" class="outline-3">
+<h3 id="sec-5-2"><span class="section-number-3">5.2</span> man</h3>
+<div class="outline-text-3" id="text-5-2">
+</div><div id="outline-container-sec-5-2-1" class="outline-4">
+<h4 id="sec-5-2-1"><span class="section-number-4">5.2.1</span> Description</h4>
+<div class="outline-text-4" id="text-5-2-1">
+<p>
+Monthly temperature in Central England from 1723-1970
+</p>
+</div>
+</div>
+<div id="outline-container-sec-5-2-2" class="outline-4">
+<h4 id="sec-5-2-2"><span class="section-number-4">5.2.2</span> Usage</h4>
+<div class="outline-text-4" id="text-5-2-2">
+<pre class="example">
+data(tempEng)
+</pre>
+</div>
+</div>
+<div id="outline-container-sec-5-2-3" class="outline-4">
+<h4 id="sec-5-2-3"><span class="section-number-4">5.2.3</span> Format</h4>
+<div class="outline-text-4" id="text-5-2-3">
+<p>
+Time-Series [1:2976] from 1723 to 1971
+</p>
+</div>
+</div>
+<div id="outline-container-sec-5-2-4" class="outline-4">
+<h4 id="sec-5-2-4"><span class="section-number-4">5.2.4</span> Examples</h4>
+<div class="outline-text-4" id="text-5-2-4">
+<div class="org-src-container">
+
+<pre class="src src-R">data(tempEng)
+<span style="color: #ff7f24;">## </span><span style="color: #ff7f24;">maybe str(tempEng) ; plot(tempEng) ...</span>
+</pre>
+</div>
+</div>
+</div>
+</div>
+<div id="outline-container-sec-5-3" class="outline-3">
+<h3 id="sec-5-3"><span class="section-number-3">5.3</span> R</h3>
+<div class="outline-text-3" id="text-5-3">
+<p>
+\bibliographystyle{apalike}
+\bibliography{ardec}
+</p>
+</div>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="author">Author: Thorsten Jolitz</p>
+<p class="date">Created: 2013-06-18 Di 02:02</p>
+<p class="creator"><a href="http://www.gnu.org/software/emacs/">Emacs</a> 24.3.1 (<a href="http://orgmode.org">Org</a> mode 8.0.3)</p>
+<p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>

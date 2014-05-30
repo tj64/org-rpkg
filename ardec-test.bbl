@@ -1,0 +1,19 @@
+\begin{thebibliography}{}
+
+\bibitem[West, 1995]{west1995bayesian}
+West, M. (1995).
+\newblock Bayesian inference in cyclical component dynamic linear models.
+\newblock {\em Journal of the American Statistical Association},
+  90(432):1301--1312.
+
+\bibitem[West, 1997]{west1997time}
+West, M. (1997).
+\newblock Time series decomposition.
+\newblock {\em Biometrika}, 84(2):489--494.
+
+\bibitem[West and Harrison, 1997]{west1997bayesian}
+West, M. and Harrison, J. (1997).
+\newblock Bayesian forecasting and dynamic models (springer series in
+  statistics).
+
+\end{thebibliography}

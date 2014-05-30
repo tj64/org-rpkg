@@ -1,0 +1,359 @@
+% Created 2013-06-17 Mo 20:12
+\documentclass[11pt]{article}
+\usepackage{listings}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{fixltx2e}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{float}
+\usepackage{wrapfig}
+\usepackage{soul}
+\usepackage{textcomp}
+\usepackage{marvosym}
+\usepackage{wasysym}
+\usepackage{latexsym}
+\usepackage{amssymb}
+\usepackage{amstext}
+\usepackage{hyperref}
+\tolerance=1000
+\author{Thorsten Jolitz}
+\date{\today}
+\title{\textbf{outorg-edit-buffer}}
+\hypersetup{
+  pdfkeywords={},
+  pdfsubject={},
+  pdfcreator={Emacs 24.3.1 (Org mode 8.0.3)}}
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\section{ardec}
+\label{sec-1}
+\subsection{meta}
+\label{sec-1-1}
+\subsection{man}
+\label{sec-1-2}
+\subsubsection{Description}
+\label{sec-1-2-1}
+
+Decomposition of a time series into latent subseries from a fitted
+autoregressive model
+\subsubsection{Usage}
+\label{sec-1-2-2}
+
+\begin{verbatim}
+ardec(x, coef, ...)
+\end{verbatim}
+\subsubsection{Arguments}
+\label{sec-1-2-3}
+
+\begin{description}
+\item[x] time series
+\item[coef] autoregressive parameters of AR(p) modebl
+\item[\ldots{}] additional arguments for specific methods
+\end{description}
+\subsubsection{Details}
+\label{sec-1-2-4}
+
+If an observed time series can be adequately described by an (eventually high
+order) autoregressive AR(p) process, a constructive result (West, 1997) yields
+a time series decomposition in terms of latent components following either
+AR(1) or AR(2) processes depending on the eigenvalues of the state evolution
+matrix.
+
+Complex eigenvalues r exp(iw) correspond to pseudo-periodic oscillations as a
+damped sine wave with fixed period (2pi/w) and damping factor r. Real
+eigenvalues correspond to a first order autoregressive process with parameter
+r.
+\subsubsection{Value}
+\label{sec-1-2-5}
+
+A list with components: 
+
+\begin{description}
+\item[period] periods of latent components
+\item[modulus] damping factors of latent components
+\item[comps] matrix of latent components
+\end{description}
+\subsubsection{References}
+\label{sec-1-2-6}
+
+\begin{verse}
+\cite{west1997time} \\
+\cite{west1997bayesian} \\
+\end{verse}
+\subsubsection{Examples}
+\label{sec-1-2-7}
+
+\lstset{language=R,numbers=none}
+\begin{lstlisting}
+data(tempEng)
+coef=ardec.lm(tempEng)$coefficients
+\end{lstlisting}
+
+warning: running the next command can be time comsuming!
+\lstset{language=R,numbers=none}
+\begin{lstlisting}
+decomposition=ardec(tempEng,coef)
+\end{lstlisting}
+\subsection{R}
+\label{sec-1-3}
+
+\lstset{language=R,numbers=none}
+\begin{lstlisting}
+ardec <- function(x,coef, ...) {
+
+    dat=x-mean(x)
+    p=length(coef)
+    ndat=length(x)
+
+    G=matrix(nrow=p,ncol=p)
+
+    G[1,]=coef
+    G[seq(2,p),seq(1,p-1)]=diag(1,(p-1))
+    G[seq(2,p),p]=0
+
+    modulus=Mod(eigen(G)[[1]])
+    lambda=2*pi/Arg(eigen(G)[[1]])
+
+    eigenvalues=eigen(G)
+    A=diag(eigenvalues[[1]])
+    E=eigenvalues[[2]]
+    B=solve(E)
+    F=rep(NA,p)
+    F[1]=1
+    F[seq(2,p)]=0
+    a=t(E) %*% F
+    d=diag(as.vector(a))
+    H=d %*% B
+
+    Z=matrix(nrow=p,ncol=ndat)
+    Z[1,]=dat
+    for (i in seq(1,p-1)){
+        Z[i+1,]=as.vector(filter(dat,c(rep(0,i),1), method="convolution",
+        sides=1))}
+
+    g=matrix(nrow=p,ncol=ndat)
+    for (j in seq(1,p)){
+        for (t in seq(1,ndat)){
+            g[j,t]=H[j, ] %*% Z[,t] }}
+
+
+    return(list(period=lambda,modulus=modulus,comps=g))
+}
+\end{lstlisting}
+\subsection{data}
+\label{sec-1-4}
+\section{ardec.lm}
+\label{sec-2}
+\subsection{meta}
+\label{sec-2-1}
+\subsection{man}
+\label{sec-2-2}
+\subsubsection{Description}
+\label{sec-2-2-1}
+
+Function ardec.lm fits an autoregressive model of order p, AR(p) to a time
+series through a linear least squares regression.
+\subsubsection{Usage}
+\label{sec-2-2-2}
+
+\begin{verbatim}
+ardec.lm(x)
+\end{verbatim}
+\subsubsection{Arguments}
+\label{sec-2-2-3}
+
+\begin{verbatim}
+\item{x}{time series}
+
+# \item{R}{size of sample to be simulated from posterior}
+
+# \item{med}{logical, indicating if a median vector of autoregressive parameters
+# should be computed from the simulated sample}
+\end{verbatim}
+\subsubsection{Value}
+\label{sec-2-2-4}
+
+\begin{verbatim}
+For ardec.lm, an object of class "lm".
+
+# For ardec.lm.bayes an Rxp matrix containing the samples of autoregressive
+# coefficients as columns (if med=FALSE).
+
+# If med=TRUE, ardec.lm.bayes returns a single column matrix containing the
+# median vector of autoregressive parameters.
+\end{verbatim}
+\subsubsection{References}
+\label{sec-2-2-5}
+
+\cite{west1995bayesian}
+\subsubsection{Examples}
+\label{sec-2-2-6}
+
+\subsection{R}
+\label{sec-2-3}
+
+\lstset{language=R,numbers=none}
+\begin{lstlisting}
+ardec.lm <- function(x) {
+
+    require(stats)
+
+    dat=x-mean(x)
+    ndat=length(dat)
+    ## p=order of autoregressive model from AIC (burg method)
+    p=ar(dat,method="burg")[[1]]
+    ## linear autoregressive model fit
+    X=t(matrix(dat[rev(rep((1:p),ndat-p)+
+    rep((0:(ndat-p-1)),rep(p,ndat-p)))],p,ndat-p))
+    y=rev(dat[(p+1):ndat])
+    fit=lm(y~-1+X, x=TRUE)
+
+    return(fit)
+}
+\end{lstlisting}
+\section{ardec.periodic}
+\label{sec-3}
+\subsection{meta}
+\label{sec-3-1}
+\subsection{man}
+\label{sec-3-2}
+\subsubsection{Description}
+\label{sec-3-2-1}
+
+Decomposition of a time series into latent subseries from a fitted
+autoregressive model
+\subsubsection{Usage}
+\label{sec-3-2-2}
+
+\begin{verbatim}
+ardec(x, coef, ...)
+\end{verbatim}
+\subsubsection{Arguments}
+\label{sec-3-2-3}
+\subsubsection{Details}
+\label{sec-3-2-4}
+\subsubsection{Value}
+\label{sec-3-2-5}
+\subsubsection{References}
+\label{sec-3-2-6}
+\subsubsection{Examples}
+\label{sec-3-2-7}
+
+\subsection{R}
+\label{sec-3-3}
+
+\lstset{language=R,numbers=none}
+\begin{lstlisting}
+ardec.periodic <- function(x,per,tol=0.95){
+
+    ## if(frequency(x)!=12){stop("monthly time series required")}
+    ## updated 29 Apr 2013
+
+    fit=ardec.lm(x)
+
+    comp=ardec(x,fit$coefficients)
+
+    if(any(comp$period > (per-tol) & comp$period < (per+tol))) {
+        candidates=which(comp$period > (per-tol) & comp$period < (per+tol))
+        lper=candidates[which.max(comp$modulus[candidates])]
+        l=comp$period[lper]
+        m=comp$modulus[lper]
+        gt=Re(comp$comps[lper,]+comp$comps[lper+1,])   }
+
+    return(list(period=l,modulus=m,component=gt))
+
+}
+\end{lstlisting}
+\section{ardec.trend}
+\label{sec-4}
+\subsection{meta}
+\label{sec-4-1}
+\subsection{man}
+\label{sec-4-2}
+\subsubsection{Description}
+\label{sec-4-2-1}
+
+Decomposition of a time series into latent subseries from a fitted
+autoregressive model
+\subsubsection{Usage}
+\label{sec-4-2-2}
+
+\begin{verbatim}
+ardec(x, coef, ...)
+\end{verbatim}
+\subsubsection{Arguments}
+\label{sec-4-2-3}
+\subsubsection{Details}
+\label{sec-4-2-4}
+\subsubsection{Value}
+\label{sec-4-2-5}
+\subsubsection{References}
+\label{sec-4-2-6}
+\subsubsection{Examples}
+\label{sec-4-2-7}
+\subsection{R}
+\label{sec-4-3}
+
+\lstset{language=R,numbers=none}
+\begin{lstlisting}
+ardec.trend <- function(x){
+
+    options(warn=-1)
+
+    fit=ardec.lm(x)
+
+
+    comp=ardec(x,fit$coefficients)
+
+    if(any(comp$period==Inf)){warning("no trend component")}
+
+
+    if(any(comp$period ==Inf)){
+        l=comp$period[which(match(comp$period,Inf)==1)[1]]
+        m=comp$modulus[which(match(comp$period,Inf)==1)[1]]
+        gt=Re(comp$comps[which(match(comp$period,Inf)==1 )[1],])
+
+    }
+
+    return(list(modulus=m,trend=gt))  
+
+}
+\end{lstlisting}
+\section{tempEng}
+\label{sec-5}
+\subsection{meta}
+\label{sec-5-1}
+\subsection{man}
+\label{sec-5-2}
+\subsubsection{Description}
+\label{sec-5-2-1}
+
+Decomposition of a time series into latent subseries from a fitted
+autoregressive model
+\subsubsection{Usage}
+\label{sec-5-2-2}
+
+\begin{verbatim}
+ardec(x, coef, ...)
+\end{verbatim}
+\subsubsection{Arguments}
+\label{sec-5-2-3}
+\subsubsection{Details}
+\label{sec-5-2-4}
+\subsubsection{Value}
+\label{sec-5-2-5}
+\subsubsection{References}
+\label{sec-5-2-6}
+\subsubsection{Examples}
+\label{sec-5-2-7}
+\subsection{R}
+\label{sec-5-3}
+
+\bibliographystyle{apalike}
+\bibliography{ardec}
+% Emacs 24.3.1 (Org mode 8.0.3)
+\end{document}

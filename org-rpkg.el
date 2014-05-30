@@ -1,114 +1,1261 @@
-;; * org-rpkg.el --- writing R packages with Org-mode
-;;   :PROPERTIES:
-;;   :copyright: Thorsten Jolitz
-;;   :copyright-years: 2013
-;;   :version:  0.9
-;;   :licence:  GPL 2 or later (free software)
-;;   :licence-url: http://www.gnu.org/licenses/
-;;   :part-of-emacs: no
-;;   :author: Thorsten Jolitz
-;;   :author_email: tjolitz AT gmail DOT com
-;;   :keywords: emacs org-mode R ESS CRAN outshine outorg
-;;   :END:
+;;; ox-rpkg.el --- Rpkg Back-End for Org Export Engine
 
-;; ** Commentary
+;; Copyright (C) since 2014 Free Software Foundation, Inc.
 
-;; This file implements functionality for 'exporting' an Org-mode file to an R
-;; package. The implementation is based on two goals:
+;; Author: Thorsten Jolitz <tjolitz at gmail dot com>
+;; Keywords: outlines, hypermedia, calendar, wp
 
-;; 1. Minimize redundancy and repetition
-;; 2. Use convention instead of configuration/programming whenever possible
+;; This file is part of GNU Emacs.
 
-;; Therefore, no attempts are made to cover all kinds of corner cases and to
-;; deal with all kinds of possible user preferences. This file assumes that
-;; the user sticks strictly to the conventions. If he doesn't, things won't
-;; work.
+;; GNU Emacs is free software: you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
 
-;; ** Usage
-;; *** Focus on source-code (no tangling)
+;; GNU Emacs is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
 
-;; This is the principal use case of this library. It assumes that writing an R
-;; package is primarily a programming task, but nevertheless includes a
-;; challenging and sophisticated documentation part. 
+;; You should have received a copy of the GNU General Public License
+;; along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.
 
-;; In this case, the whole R package is written in a single =.R= file that is
-;; given the 'look&feel' of an Org-mode file by activating /outline-minor-mode/
-;; with /outshine.el/ and /outorg.el/ extensions (optionally, /navi-mode.el/ can
-;; be used too as a productivity booster). 
+;;; Commentary:
+;;
+;; This library implements a R-package back-end for Org generic
+;; exporter.
+;;
+;; To test it, run
+;;
+;;   M-: (org-export-to-buffer 'rpkg "*Test Rpkg*") RET
+;;
+;; in an org-mode buffer then switch to the buffer to see the Rpkg
+;; export.  See ox.el for more details on how this exporter works.
+;;
+;; It introduces one new buffer keywords:
+;; "RPKG_CLASS_OPTIONS".
 
-;; This =.R= file is the sole source-file of the project, all R code is contained
-;; in this file. It is _not_ splitted into several smaller files later on. It
-;; will usuably be used in /R-mode/ (ESS[S]), i.e. the R-dialect of /ess-mode/,
-;; in combination with an \*R\* process-buffer in iESS mode. No tangling is
-;; necessary. This is the (only?) file that should be under version-control. 
+;;; Code:
 
-;; At the same time, this =.R= file contains all the documentation and meta-data
-;; necessary to produce a R package - as comments. These comment-sections are
-;; converted to Org-mode and offered in temporary Org-mode edit buffers for any
-;; non-trivial text editing to be done. Thus, the documentation is stored in this
-;; =.R= file as comments (making the file machine-executable), but all the actual
-;; editing of the documentation is done in Org-mode after uncommenting the
-;; comment-text parts. The temporary Org-mode edit buffers are then used to
-;; 'export' the file to an R package. In contrast to the source-code, the
-;; documentation is splitted into several (obligatoric) files during this
-;; process, as demanded by the standards for R packages.
+(require 'ox)
 
-;; *** Focus on text (with tangling)
+(eval-when-compile (require 'cl))
 
-;; Some users will prefer the classic way of literate programming even when
-;; the programming part seems to be more important than the document authoring
-;; part. They will want to write their R package in one =.org= file, do the
-;; source-code editing in temporary ESS edit buffers, and frequently extract
-;; machine-executable source-files by tangling. They probably want their
-;; source-code to be splitted into several small =.R= files in the R package
-;; generation process, thereby adhering to the conventions in the R community.
+(defvar org-export-rpkg-default-packages-alist)
+(defvar org-export-rpkg-packages-alist)
+(defvar orgtbl-exp-regexp)
 
-;; ** ChangeLog
 
-;; | version | author          | date            |
-;; |---------+-----------------+-----------------|
-;; |     0.9 | Thorsten Jolitz | <2013-06-14 Fr> |
+
+;;; Define Back-End
 
-;; * Requires
-;; * Mode Definitions
-;; * Variables
-;; ** Consts
-;; ** Vars
-;; ** Hooks
-;; ** Customs
-;; * Functions
-;; ** Non-interactive Functions
+(org-export-define-backend 'rpkg
+  '((babel-call . org-rpkg-babel-call)
+    (bold . org-rpkg-bold)
+    (center-block . org-rpkg-center-block)
+    (clock . org-rpkg-clock)
+    (code . org-rpkg-code)
+    (comment . (lambda (&rest args) ""))
+    (comment-block . (lambda (&rest args) ""))
+    (drawer . org-rpkg-drawer)
+    (dynamic-block . org-rpkg-dynamic-block)
+    (entity . org-rpkg-entity)
+    (example-block . org-rpkg-example-block)
+    (export-block . org-rpkg-export-block)
+    (export-snippet . org-rpkg-export-snippet)
+    (fixed-width . org-rpkg-fixed-width)
+    (footnote-definition . org-rpkg-footnote-definition)
+    (footnote-reference . org-rpkg-footnote-reference)
+    (headline . org-rpkg-headline)
+    (horizontal-rule . org-rpkg-horizontal-rule)
+    (inline-babel-call . org-rpkg-inline-babel-call)
+    (inline-src-block . org-rpkg-inline-src-block)
+    (inlinetask . org-rpkg-inlinetask)
+    (italic . org-rpkg-italic)
+    (item . org-rpkg-item)
+    (keyword . org-rpkg-keyword)
+    (line-break . org-rpkg-line-break)
+    (link . org-rpkg-link)
+    (node-property . org-rpkg-node-property)
+    (paragraph . org-rpkg-paragraph)
+    (plain-list . org-rpkg-plain-list)
+    (plain-text . org-rpkg-plain-text)
+    (planning . org-rpkg-planning)
+    (property-drawer . org-rpkg-property-drawer)
+    (quote-block . org-rpkg-quote-block)
+    (radio-target . org-rpkg-radio-target)
+    (section . org-rpkg-section)
+    (special-block . org-rpkg-special-block)
+    (src-block . org-rpkg-src-block)
+    (statistics-cookie . org-rpkg-statistics-cookie)
+    (strike-through . org-rpkg-strike-through)
+    (subscript . org-rpkg-subscript)
+    (superscript . org-rpkg-superscript)
+    (table . org-rpkg-table)
+    (table-cell . org-rpkg-table-cell)
+    (table-row . org-rpkg-table-row)
+    (target . org-rpkg-target)
+    (template . org-rpkg-template)
+    (timestamp . org-rpkg-timestamp)
+    (underline . org-rpkg-underline)
+    (verbatim . org-rpkg-verbatim)
+    (verse-block . org-rpkg-verse-block))
+  :export-block "RPKG"
+  :menu-entry
+  '(?m "Export to RPKG"
+       ((?m "As RPKG file" org-rpkg-export-to-rpkg)
+	(?p "As PDF file" org-rpkg-export-to-pdf)
+	(?o "As PDF file and open"
+	    (lambda (a s v b)
+	      (if a (org-rpkg-export-to-pdf t s v b)
+		(org-open-file (org-rpkg-export-to-pdf nil s v b)))))))
+  :options-alist
+  '((:rpkg-class "RPKG_CLASS" nil nil t)
+    (:rpkg-class-options "RPKG_CLASS_OPTIONS" nil nil t)
+    (:rpkg-header-extra "RPKG_HEADER" nil nil newline)))
 
-(defun org-rpkg-insert-org-template ()
-  "Insert file skeleton for `org-mode' file.")
 
-(defun org-rpkg-insert-ess-template ()
-  "Insert file skeleton for `ess-mode' file.")
+
+;;; User Configurable Variables
 
-;; ** Commands
+(defgroup org-export-rpkg nil
+  "Options for exporting Org mode files to Rpkg."
+  :tag "Org Export Rpkg"
+  :group 'org-export)
 
-(defun org-rpkg-insert-template (&optional ORG)
-  "Insert file skeleton for writing an R package with Org-mode. 
-If current-buffer is in `org-mode' or ORG is non-nil, an Org-mode template
-  will be inserted, otherwise an `ess-mode' template."
-  (interactive))
+;;; Tables
 
-(defun org-rpkg-update-package (&optional filename pkgdir CONFIRM-OVERWRITE-P)
-  "Update an existing R package or create a new one.
+(defcustom org-rpkg-tables-centered t
+  "When non-nil, tables are exported in a center environment."
+  :group 'org-export-rpkg
+  :version "24.4"
+  :package-version '(Org . "8.0")
+  :type 'boolean)
 
-If FILENAME is non-nil and has extension '.org' or '.R', visit
-the file and operate in that that buffer. Otherwise, use the
-current buffer if it is in `org-mode' or `outline-minor-mode'
-with `outshine' extensions. If PKGDIR is non-nil, it is assumed
-to be the name of the R package to be updated. Otherwise, the R
-package to be updated or created is searched in FILENAME's
-directory (if FILENAME is given) or in the current directory. 
+(defcustom org-rpkg-tables-verbatim nil
+  "When non-nil, tables are exported verbatim."
+  :group 'org-export-rpkg
+  :version "24.4"
+  :package-version '(Org . "8.0")
+  :type 'boolean)
 
-If CONFIRM-OVERWRITE-P is non-nil, ask the user before overwriting existing R
-package files."
-  (interactive))
 
-;; * Menus and Keys
-;; ** Menus
-;; ** Keys
-;; * Run hooks and provide
+(defcustom org-rpkg-table-scientific-notation "%sE%s"
+  "Format string to display numbers in scientific notation.
+The format should have \"%s\" twice, for mantissa and exponent
+\(i.e. \"%s\\\\times10^{%s}\").
+
+When nil, no transformation is made."
+  :group 'org-export-rpkg
+  :version "24.4"
+  :package-version '(Org . "8.0")
+  :type '(choice
+          (string :tag "Format string")
+          (const :tag "No formatting")))
+
+
+;;; Inlinetasks
+;; Src blocks
+
+(defcustom org-rpkg-source-highlight nil
+  "Use GNU source highlight to embellish source blocks "
+  :group 'org-export-rpkg
+  :version "24.4"
+  :package-version '(Org . "8.0")
+  :type 'boolean)
+
+
+(defcustom org-rpkg-source-highlight-langs
+  '((emacs-lisp "lisp") (lisp "lisp") (clojure "lisp")
+    (scheme "scheme")
+    (c "c") (cc "cpp") (csharp "csharp") (d "d")
+    (fortran "fortran") (cobol "cobol") (pascal "pascal")
+    (ada "ada") (asm "asm")
+    (perl "perl") (cperl "perl")
+    (python "python") (ruby "ruby") (tcl "tcl") (lua "lua")
+    (java "java") (javascript "javascript")
+    (tex "latex")
+    (shell-script "sh") (awk "awk") (diff "diff") (m4 "m4")
+    (ocaml "caml") (caml "caml")
+    (sql "sql") (sqlite "sql")
+    (html "html") (css "css") (xml "xml")
+    (bat "bat") (bison "bison") (clipper "clipper")
+    (ldap "ldap") (opa "opa")
+    (php "php") (postscript "postscript") (prolog "prolog")
+    (properties "properties") (makefile "makefile")
+    (tml "tml") (vala "vala") (vbscript "vbscript") (xorg "xorg"))
+  "Alist mapping languages to their listing language counterpart.
+The key is a symbol, the major mode symbol without the \"-mode\".
+The value is the string that should be inserted as the language
+parameter for the listings package.  If the mode name and the
+listings name are the same, the language does not need an entry
+in this list - but it does not hurt if it is present."
+  :group 'org-export-rpkg
+  :version "24.4"
+  :package-version '(Org . "8.0")
+  :type '(repeat
+          (list
+           (symbol :tag "Major mode       ")
+           (string :tag "Listings language"))))
+
+
+
+(defvar org-rpkg-custom-lang-environments nil
+  "Alist mapping languages to language-specific Rpkg environments.
+
+It is used during export of src blocks by the listings and
+rpkg packages.  For example,
+
+  \(setq org-rpkg-custom-lang-environments
+     '\(\(python \"pythoncode\"\)\)\)
+
+would have the effect that if org encounters begin_src python
+during rpkg export."
+)
+
+
+;;; Compilation
+
+(defcustom org-rpkg-pdf-process
+  '("tbl %f | eqn | groff -rpkg | ps2pdf - > %b.pdf"
+    "tbl %f | eqn | groff -rpkg | ps2pdf - > %b.pdf"
+    "tbl %f | eqn | groff -rpkg | ps2pdf - > %b.pdf")
+
+  "Commands to process a Rpkg file to a PDF file.
+This is a list of strings, each of them will be given to the
+shell as a command.  %f in the command will be replaced by the
+full file name, %b by the file base name (i.e. without directory
+and extension parts) and %o by the base directory of the file.
+
+
+By default, Org uses 3 runs of to do the processing.
+
+Alternatively, this may be a Lisp function that does the
+processing.  This function should accept the file name as
+its single argument."
+  :group 'org-export-pdf
+  :group 'org-export-rpkg
+  :version "24.4"
+  :package-version '(Org . "8.0")
+  :type '(choice
+          (repeat :tag "Shell command sequence"
+                  (string :tag "Shell command"))
+          (const :tag "2 runs of pdfgroff"
+                 ("tbl %f | eqn | groff -mm | ps2pdf - > %b.pdf"
+                  "tbl %f | eqn | groff -mm | ps2pdf - > %b.pdf" ))
+          (const :tag "3 runs of pdfgroff"
+                 ("tbl %f | eqn | groff -mm | ps2pdf - > %b.pdf"
+                  "tbl %f | eqn | groff -mm | ps2pdf - > %b.pdf"
+                  "tbl %f | eqn | groff -mm | ps2pdf - > %b.pdf"))
+          (function)))
+
+(defcustom org-rpkg-logfiles-extensions
+  '("log" "out" "toc")
+  "The list of file extensions to consider as Rpkg logfiles."
+  :group 'org-export-rpkg
+  :version "24.4"
+  :package-version '(Org . "8.0")
+  :type '(repeat (string :tag "Extension")))
+
+(defcustom org-rpkg-remove-logfiles t
+  "Non-nil means remove the logfiles produced by PDF production.
+These are the .aux, .log, .out, and .toc files."
+  :group 'org-export-rpkg
+  :version "24.4"
+  :package-version '(Org . "8.0")
+  :type 'boolean)
+
+
+
+;;; Internal Functions
+
+(defun org-rpkg--caption/label-string (element info)
+  "Return caption and label Rpkg string for ELEMENT.
+
+INFO is a plist holding contextual information.  If there's no
+caption nor label, return the empty string.
+
+For non-floats, see `org-rpkg--wrap-label'."
+  (let ((label (org-element-property :label element))
+	(main (org-export-get-caption element))
+	(short (org-export-get-caption element t)))
+    (cond ((and (not main) (not label)) "")
+	  ((not main) (format "\\fI%s\\fP" label))
+	  ;; Option caption format with short name.
+	  (short (format "\\fR%s\\fP - \\fI\\P - %s\n"
+			 (org-export-data short info)
+			 (org-export-data main info)))
+	  ;; Standard caption format.
+	  (t (format "\\fR%s\\fP" (org-export-data main info))))))
+
+(defun org-rpkg--wrap-label (element output)
+  "Wrap label associated to ELEMENT around OUTPUT, if appropriate.
+This function shouldn't be used for floats.  See
+`org-rpkg--caption/label-string'."
+  (let ((label (org-element-property :name element)))
+    (if (or (not output) (not label) (string= output "") (string= label ""))
+        output
+      (concat (format "%s\n.br\n" label) output))))
+
+
+
+;;; Template
+
+(defun org-rpkg-template (contents info)
+  "Return complete document string after Rpkg conversion.
+CONTENTS is the transcoded contents string.  INFO is a plist
+holding export options."
+  (let* ((title (org-export-data (plist-get info :title) info))
+        (attr (read (format "(%s)"
+                            (mapconcat
+                             #'identity
+                             (list (plist-get info :rpkg-class-options))
+                             " "))))
+        (section-item (plist-get attr :section-id)))
+
+    (concat
+
+     (cond
+      ((and title (stringp section-item))
+       (format ".TH \"%s\" \"%s\" \n" title section-item))
+      ((and (string= "" title) (stringp section-item))
+       (format ".TH \"%s\" \"%s\" \n" " " section-item))
+      (title
+       (format ".TH \"%s\" \"1\" \n" title))
+      (t
+       ".TH \" \" \"1\" "))
+     contents)))
+
+
+
+
+;;; Transcode Functions
+
+;;; Babel Call
+;;
+;; Babel Calls are ignored.
+
+
+;;; Bold
+
+(defun org-rpkg-bold (bold contents info)
+  "Transcode BOLD from Org to Rpkg.
+CONTENTS is the text with bold markup.  INFO is a plist holding
+contextual information."
+  (format "\\fB%s\\fP" contents))
+
+
+;;; Center Block
+
+(defun org-rpkg-center-block (center-block contents info)
+  "Transcode a CENTER-BLOCK element from Org to Rpkg.
+CONTENTS holds the contents of the center block.  INFO is a plist
+holding contextual information."
+  (org-rpkg--wrap-label
+   center-block
+   (format ".ce %d\n.nf\n%s\n.fi"
+           (- (length (split-string contents "\n")) 1 )
+           contents)))
+
+
+;;; Clock
+
+(defun org-rpkg-clock (clock contents info)
+  "Transcode a CLOCK element from Org to Rpkg.
+CONTENTS is nil.  INFO is a plist holding contextual
+information."
+  "" )
+
+
+;;; Code
+
+(defun org-rpkg-code (code contents info)
+  "Transcode a CODE object from Org to Rpkg.
+CONTENTS is nil.  INFO is a plist used as a communication
+channel."
+  (format "\\fC%s\\fP" code))
+
+
+;;; Comment
+;;
+;; Comments are ignored.
+
+
+;;; Comment Block
+;;
+;; Comment Blocks are ignored.
+
+
+;;; Drawer
+
+(defun org-rpkg-drawer (drawer contents info)
+  "Transcode a DRAWER element from Org to Rpkg.
+   DRAWER holds the drawer information
+   CONTENTS holds the contents of the block.
+   INFO is a plist holding contextual information. "
+  contents)
+
+
+;;; Dynamic Block
+
+(defun org-rpkg-dynamic-block (dynamic-block contents info)
+  "Transcode a DYNAMIC-BLOCK element from Org to Rpkg.
+CONTENTS holds the contents of the block.  INFO is a plist
+holding contextual information.  See `org-export-data'."
+  (org-rpkg--wrap-label dynamic-block contents))
+
+
+;;; Entity
+
+(defun org-rpkg-entity (entity contents info)
+  "Transcode an ENTITY object from Org to Rpkg.
+CONTENTS are the definition itself.  INFO is a plist holding
+contextual information."
+  (org-element-property :utf-8 entity))
+
+
+;;; Example Block
+
+(defun org-rpkg-example-block (example-block contents info)
+  "Transcode an EXAMPLE-BLOCK element from Org to Rpkg.
+CONTENTS is nil.  INFO is a plist holding contextual
+information."
+  (org-rpkg--wrap-label
+   example-block
+   (format ".RS\n.nf\n%s\n.fi\n.RE"
+           (org-export-format-code-default example-block info))))
+
+
+;;; Export Block
+
+(defun org-rpkg-export-block (export-block contents info)
+  "Transcode a EXPORT-BLOCK element from Org to Rpkg.
+CONTENTS is nil.  INFO is a plist holding contextual information."
+  (when (string= (org-element-property :type export-block) "RPKG")
+    (org-remove-indentation (org-element-property :value export-block))))
+
+
+;;; Export Snippet
+
+(defun org-rpkg-export-snippet (export-snippet contents info)
+  "Transcode a EXPORT-SNIPPET object from Org to Rpkg.
+CONTENTS is nil.  INFO is a plist holding contextual information."
+  (when (eq (org-export-snippet-backend export-snippet) 'rpkg)
+    (org-element-property :value export-snippet)))
+
+
+;;; Fixed Width
+
+(defun org-rpkg-fixed-width (fixed-width contents info)
+  "Transcode a FIXED-WIDTH element from Org to Rpkg.
+CONTENTS is nil.  INFO is a plist holding contextual information."
+  (org-rpkg--wrap-label
+   fixed-width
+   (format "\\fC\n%s\\fP"
+           (org-remove-indentation
+            (org-element-property :value fixed-width)))))
+
+
+;;; Footnote Definition
+;;
+;; Footnote Definitions are ignored.
+
+;;; Footnote References
+;;
+;; Footnote References are Ignored
+
+
+;;; Headline
+
+(defun org-rpkg-headline (headline contents info)
+  "Transcode a HEADLINE element from Org to Rpkg.
+CONTENTS holds the contents of the headline.  INFO is a plist
+holding contextual information."
+  (let* ((level (org-export-get-relative-level headline info))
+		 (numberedp (org-export-numbered-headline-p headline info))
+		 ;; Section formatting will set two placeholders: one for the
+		 ;; title and the other for the contents.
+		 (section-fmt
+		  (case level
+			(1 ".SH \"%s\"\n%s")
+			(2 ".SS \"%s\"\n%s")
+			(3 ".SS \"%s\"\n%s")
+			(t nil)))
+		 (text (org-export-data (org-element-property :title headline) info)))
+
+    (cond
+     ;; Case 1: This is a footnote section: ignore it.
+     ((org-element-property :footnote-section-p headline) nil)
+
+     ;; Case 2. This is a deep sub-tree: export it as a list item.
+     ;;         Also export as items headlines for which no section
+     ;;         format has been found.
+     ((or (not section-fmt) (org-export-low-level-p headline info))
+      ;; Build the real contents of the sub-tree.
+      (let ((low-level-body
+			 (concat
+			  ;; If the headline is the first sibling, start a list.
+			  (when (org-export-first-sibling-p headline info)
+				(format "%s\n" ".RS"))
+			  ;; Itemize headline
+			  ".TP\n.ft I\n" text "\n.ft\n"
+			  contents ".RE")))
+		;; If headline is not the last sibling simply return
+		;; LOW-LEVEL-BODY.  Otherwise, also close the list, before any
+		;; blank line.
+		(if (not (org-export-last-sibling-p headline info)) low-level-body
+		  (replace-regexp-in-string
+		   "[ \t\n]*\\'" ""
+		   low-level-body))))
+
+     ;; Case 3. Standard headline.  Export it as a section.
+     (t (format section-fmt text contents )))))
+
+;;; Horizontal Rule
+;; Not supported
+
+;;; Inline Babel Call
+;;
+;; Inline Babel Calls are ignored.
+
+;;; Inline Src Block
+
+(defun org-rpkg-inline-src-block (inline-src-block contents info)
+  "Transcode an INLINE-SRC-BLOCK element from Org to Rpkg.
+CONTENTS holds the contents of the item.  INFO is a plist holding
+contextual information."
+  (let* ((code (org-element-property :value inline-src-block)))
+    (cond
+     (org-rpkg-source-highlight
+      (let* ((tmpdir (if (featurep 'xemacs)
+                         temp-directory
+                       temporary-file-directory ))
+             (in-file  (make-temp-name
+                        (expand-file-name "srchilite" tmpdir)))
+             (out-file (make-temp-name
+                        (expand-file-name "reshilite" tmpdir)))
+             (org-lang (org-element-property :language inline-src-block))
+             (lst-lang (cadr (assq (intern org-lang)
+                                   org-rpkg-source-highlight-langs)))
+
+             (cmd (concat (expand-file-name "source-highlight")
+                          " -s " lst-lang
+                          " -f groff_rpkg"
+                          " -i " in-file
+                          " -o " out-file )))
+
+        (if lst-lang
+            (let ((code-block "" ))
+              (with-temp-file in-file (insert code))
+              (shell-command cmd)
+              (setq code-block  (org-file-contents out-file))
+              (delete-file in-file)
+              (delete-file out-file)
+              code-block)
+          (format ".RS\n.nf\n\\fC\\m[black]%s\\m[]\\fP\n.fi\n.RE\n"
+                  code))))
+
+     ;; Do not use a special package: transcode it verbatim.
+     (t
+      (concat ".RS\n.nf\n" "\\fC" "\n" code "\n"
+              "\\fP\n.fi\n.RE\n")))))
+
+
+;;; Inlinetask
+;;; Italic
+
+(defun org-rpkg-italic (italic contents info)
+  "Transcode ITALIC from Org to Rpkg.
+CONTENTS is the text with italic markup.  INFO is a plist holding
+contextual information."
+  (format "\\fI%s\\fP" contents))
+
+
+;;; Item
+
+
+(defun org-rpkg-item (item contents info)
+
+  "Transcode an ITEM element from Org to Rpkg.
+CONTENTS holds the contents of the item.  INFO is a plist holding
+contextual information."
+
+  (let* ((bullet (org-element-property :bullet item))
+         (type (org-element-property :type (org-element-property :parent item)))
+         (checkbox (case (org-element-property :checkbox item)
+                     (on "\\o'\\(sq\\(mu'")			;;
+                     (off "\\(sq ")					;;
+                     (trans "\\o'\\(sq\\(mi'"   ))) ;;
+
+         (tag (let ((tag (org-element-property :tag item)))
+                ;; Check-boxes must belong to the tag.
+                (and tag (format "\\fB%s\\fP"
+                                 (concat checkbox
+                                         (org-export-data tag info)))))))
+
+    (if (and (null tag )
+			 (null checkbox))
+		(let* ((bullet (org-trim bullet))
+			   (marker (cond  ((string= "-" bullet) "\\(em")
+							  ((string= "*" bullet) "\\(bu")
+							  ((eq type 'ordered)
+							   (format "%s " (org-trim bullet)))
+							  (t "\\(dg"))))
+		  (concat ".IP " marker " 4\n"
+				  (org-trim (or contents " " ))))
+                                        ; else
+      (concat ".TP\n" (or tag (concat " " checkbox)) "\n"
+              (org-trim (or contents " " ))))))
+
+;;; Keyword
+
+
+(defun org-rpkg-keyword (keyword contents info)
+  "Transcode a KEYWORD element from Org to Rpkg.
+CONTENTS is nil.  INFO is a plist holding contextual information."
+  (let ((key (org-element-property :key keyword))
+        (value (org-element-property :value keyword)))
+    (cond
+     ((string= key "RPKG") value)
+     ((string= key "INDEX") nil)
+     ((string= key "TOC"   ) nil))))
+
+
+;;; Line Break
+
+(defun org-rpkg-line-break (line-break contents info)
+  "Transcode a LINE-BREAK object from Org to Rpkg.
+CONTENTS is nil.  INFO is a plist holding contextual information."
+  ".br\n")
+
+
+;;; Link
+
+
+(defun org-rpkg-link (link desc info)
+  "Transcode a LINK object from Org to Rpkg.
+
+DESC is the description part of the link, or the empty string.
+INFO is a plist holding contextual information.  See
+`org-export-data'."
+  (let* ((type (org-element-property :type link))
+         (raw-path (org-element-property :path link))
+         ;; Ensure DESC really exists, or set it to nil.
+         (desc (and (not (string= desc "")) desc))
+         (path (cond
+                ((member type '("http" "https" "ftp" "mailto"))
+                 (concat type ":" raw-path))
+                ((and (string= type "file") (file-name-absolute-p raw-path))
+                 (concat "file:" raw-path))
+                (t raw-path)))
+         protocol)
+    (cond
+     ;; External link with a description part.
+     ((and path desc) (format "%s \\fBat\\fP \\fI%s\\fP" path desc))
+     ;; External link without a description part.
+     (path (format "\\fI%s\\fP" path))
+     ;; No path, only description.  Try to do something useful.
+     (t (format "\\fI%s\\fP" desc)))))
+
+;;;; Node Property
+
+(defun org-rpkg-node-property (node-property contents info)
+  "Transcode a NODE-PROPERTY element from Org to Rpkg.
+CONTENTS is nil.  INFO is a plist holding contextual
+information."
+  (format "%s:%s"
+          (org-element-property :key node-property)
+          (let ((value (org-element-property :value node-property)))
+            (if value (concat " " value) ""))))
+
+;;; Paragraph
+
+(defun org-rpkg-paragraph (paragraph contents info)
+  "Transcode a PARAGRAPH element from Org to Rpkg.
+CONTENTS is the contents of the paragraph, as a string.  INFO is
+the plist used as a communication channel."
+  (let ((parent (plist-get (nth 1 paragraph) :parent)))
+    (when parent
+      (let ((parent-type (car parent))
+            (fixed-paragraph ""))
+        (cond ((and (eq parent-type 'item)
+                    (plist-get (nth 1 parent) :bullet ))
+               (setq fixed-paragraph (concat "" contents)))
+              ((eq parent-type 'section)
+               (setq fixed-paragraph (concat ".PP\n" contents)))
+              ((eq parent-type 'footnote-definition)
+               (setq fixed-paragraph contents))
+              (t (setq fixed-paragraph (concat "" contents))))
+        fixed-paragraph ))))
+
+
+;;; Plain List
+
+(defun org-rpkg-plain-list (plain-list contents info)
+  "Transcode a PLAIN-LIST element from Org to Rpkg.
+CONTENTS is the contents of the list.  INFO is a plist holding
+contextual information."
+  contents)
+
+;;; Plain Text
+
+(defun org-rpkg-plain-text (text info)
+  "Transcode a TEXT string from Org to Rpkg.
+TEXT is the string to transcode.  INFO is a plist holding
+contextual information."
+  (let ((output text))
+    ;; Protect various chars.
+    (setq output (replace-regexp-in-string
+		  "\\(?:[^\\]\\|^\\)\\(\\\\\\)\\(?:[^%$#&{}~^_\\]\\|$\\)"
+		  "$\\" output nil t 1))
+    ;; Activate smart quotes.  Be sure to provide original TEXT string
+    ;; since OUTPUT may have been modified.
+    (when (plist-get info :with-smart-quotes)
+      (setq output (org-export-activate-smart-quotes output :utf-8 info text)))
+    ;; Handle break preservation if required.
+    (when (plist-get info :preserve-breaks)
+      (setq output (replace-regexp-in-string "\\(\\\\\\\\\\)?[ \t]*\n" ".br\n"
+					     output)))
+    ;; Return value.
+    output))
+
+
+
+;;; Planning
+
+
+;;; Property Drawer
+
+(defun org-rpkg-property-drawer (property-drawer contents info)
+  "Transcode a PROPERTY-DRAWER element from Org to Rpkg.
+CONTENTS holds the contents of the drawer.  INFO is a plist
+holding contextual information."
+  (and (org-string-nw-p contents)
+       (format ".RS\n.nf\n%s\n.fi\n.RE" contents)))
+
+;;; Quote Block
+
+(defun org-rpkg-quote-block (quote-block contents info)
+  "Transcode a QUOTE-BLOCK element from Org to Rpkg.
+CONTENTS holds the contents of the block.  INFO is a plist
+holding contextual information."
+  (org-rpkg--wrap-label
+   quote-block
+   (format ".RS\n%s\n.RE" contents)))
+
+
+;;; Radio Target
+
+(defun org-rpkg-radio-target (radio-target text info)
+  "Transcode a RADIO-TARGET object from Org to Rpkg.
+TEXT is the text of the target.  INFO is a plist holding
+contextual information."
+  text )
+
+
+;;; Section
+
+(defun org-rpkg-section (section contents info)
+  "Transcode a SECTION element from Org to Rpkg.
+CONTENTS holds the contents of the section.  INFO is a plist
+holding contextual information."
+  contents)
+
+
+;;; Special Block
+
+(defun org-rpkg-special-block (special-block contents info)
+  "Transcode a SPECIAL-BLOCK element from Org to Rpkg.
+CONTENTS holds the contents of the block.  INFO is a plist
+holding contextual information."
+  (let ((type (downcase (org-element-property :type special-block))))
+    (org-rpkg--wrap-label
+     special-block
+     (format "%s\n" contents))))
+
+
+;;; Src Block
+
+(defun org-rpkg-src-block (src-block contents info)
+  "Transcode a SRC-BLOCK element from Org to Rpkg.
+CONTENTS holds the contents of the item.  INFO is a plist holding
+contextual information."
+  (let* ((lang (org-element-property :language src-block))
+         (code (org-element-property :value src-block))
+         (custom-env (and lang
+                          (cadr (assq (intern lang)
+                                      org-rpkg-custom-lang-environments))))
+         (num-start (case (org-element-property :number-lines src-block)
+                      (continued (org-export-get-loc src-block info))
+                      (new 0)))
+         (retain-labels (org-element-property :retain-labels src-block)))
+    (cond
+     ;; Case 1.  No source fontification.
+     ((not org-rpkg-source-highlight)
+      (format ".RS\n.nf\n\\fC%s\\fP\n.fi\n.RE\n\n"
+	      (org-export-format-code-default src-block info)))
+     (org-rpkg-source-highlight
+      (let* ((tmpdir (if (featurep 'xemacs)
+			 temp-directory
+		       temporary-file-directory ))
+
+	     (in-file  (make-temp-name
+			(expand-file-name "srchilite" tmpdir)))
+	     (out-file (make-temp-name
+			(expand-file-name "reshilite" tmpdir)))
+
+	     (org-lang (org-element-property :language src-block))
+	     (lst-lang (cadr (assq (intern org-lang)
+				   org-rpkg-source-highlight-langs)))
+
+	     (cmd (concat "source-highlight"
+			  " -s " lst-lang
+			  " -f groff_rpkg "
+			  " -i " in-file
+			  " -o " out-file)))
+
+	(if lst-lang
+	    (let ((code-block ""))
+	      (with-temp-file in-file (insert code))
+	      (shell-command cmd)
+	      (setq code-block  (org-file-contents out-file))
+	      (delete-file in-file)
+	      (delete-file out-file)
+	      code-block)
+	  (format ".RS\n.nf\n\\fC\\m[black]%s\\m[]\\fP\n.fi\n.RE" code)))))))
+
+
+;;; Statistics Cookie
+
+(defun org-rpkg-statistics-cookie (statistics-cookie contents info)
+  "Transcode a STATISTICS-COOKIE object from Org to Rpkg.
+CONTENTS is nil.  INFO is a plist holding contextual information."
+  (org-element-property :value statistics-cookie))
+
+
+;;; Strike-Through
+
+(defun org-rpkg-strike-through (strike-through contents info)
+  "Transcode STRIKE-THROUGH from Org to Rpkg.
+CONTENTS is the text with strike-through markup.  INFO is a plist
+holding contextual information."
+  (format "\\fI%s\\fP" contents))
+
+;;; Subscript
+
+(defun org-rpkg-subscript (subscript contents info)
+  "Transcode a SUBSCRIPT object from Org to Rpkg.
+CONTENTS is the contents of the object.  INFO is a plist holding
+contextual information."
+  (format  "\\d\\s-2%s\\s+2\\u" contents))
+
+;;; Superscript "^_%s$
+
+(defun org-rpkg-superscript (superscript contents info)
+  "Transcode a SUPERSCRIPT object from Org to Rpkg.
+CONTENTS is the contents of the object.  INFO is a plist holding
+contextual information."
+  (format  "\\u\\s-2%s\\s+2\\d" contents))
+
+
+;;; Table
+;;
+;; `org-rpkg-table' is the entry point for table transcoding.  It
+;; takes care of tables with a "verbatim" attribute.  Otherwise, it
+;; delegates the job to either `org-rpkg-table--table.el-table' or
+;; `org-rpkg-table--org-table' functions, depending of the type of
+;; the table.
+;;
+;; `org-rpkg-table--align-string' is a subroutine used to build
+;; alignment string for Org tables.
+
+(defun org-rpkg-table (table contents info)
+  "Transcode a TABLE element from Org to Rpkg.
+CONTENTS is the contents of the table.  INFO is a plist holding
+contextual information."
+  (cond
+   ;; Case 1: verbatim table.
+   ((or org-rpkg-tables-verbatim
+        (let ((attr (read (format "(%s)"
+                 (mapconcat
+                  #'identity
+                  (org-element-property :attr_rpkg table)
+                  " ")))))
+
+          (and attr (plist-get attr :verbatim))))
+
+    (format ".nf\n\\fC%s\\fP\n.fi"
+            ;; Re-create table, without affiliated keywords.
+            (org-trim
+             (org-element-interpret-data
+              `(table nil ,@(org-element-contents table))))))
+   ;; Case 2: Standard table.
+   (t (org-rpkg-table--org-table table contents info))))
+
+(defun org-rpkg-table--align-string (divider table info)
+  "Return an appropriate Rpkg alignment string.
+TABLE is the considered table.  INFO is a plist used as
+a communication channel."
+  (let (alignment)
+    ;; Extract column groups and alignment from first (non-rule) row.
+    (org-element-map
+	(org-element-map table 'table-row
+	  (lambda (row)
+	    (and (eq (org-element-property :type row) 'standard) row))
+	  info 'first-match)
+	'table-cell
+      (lambda (cell)
+	(let* ((borders (org-export-table-cell-borders cell info))
+	       (raw-width (org-export-table-cell-width cell info))
+	       (width-cm (when raw-width (/ raw-width 5)))
+	       (width (if raw-width (format "w(%dc)"
+					    (if (< width-cm 1) 1 width-cm)) "")))
+	  ;; Check left border for the first cell only.
+	  (when (and (memq 'left borders) (not alignment))
+	    (push "|" alignment))
+	  (push
+	   (case (org-export-table-cell-alignment cell info)
+	     (left (concat "l" width divider))
+	     (right (concat "r" width divider))
+	     (center (concat "c" width divider)))
+	   alignment)
+	  (when (memq 'right borders) (push "|" alignment))))
+      info)
+    (apply 'concat (reverse alignment))))
+
+(defun org-rpkg-table--org-table (table contents info)
+  "Return appropriate Rpkg code for an Org table.
+
+TABLE is the table type element to transcode.  CONTENTS is its
+contents, as a string.  INFO is a plist used as a communication
+channel.
+
+This function assumes TABLE has `org' as its `:type' attribute."
+  (let* ((attr (org-export-read-attribute :attr_rpkg table))
+	 (label (org-element-property :name table))
+         (caption (and (not (plist-get attr :disable-caption))
+		       (org-rpkg--caption/label-string table info)))
+         (divider (if (plist-get attr :divider) "|" " "))
+
+         ;; Determine alignment string.
+         (alignment (org-rpkg-table--align-string divider table info))
+         ;; Extract others display options.
+
+         (lines (org-split-string contents "\n"))
+
+         (attr-list
+	  (delq nil
+		(list
+		 (and (plist-get attr :expand) "expand")
+		 (let ((placement (plist-get attr :placement)))
+		   (cond ((string= placement 'center) "center")
+			 ((string= placement 'left) nil)
+			 (t (if org-rpkg-tables-centered "center" ""))))
+		 (or (plist-get attr :boxtype) "box"))))
+
+         (title-line  (plist-get attr :title-line))
+         (long-cells (plist-get attr :long-cells))
+
+         (table-format (concat
+                        (format "%s" (or (car attr-list) "" ))
+                        (or
+                         (let ((output-list '()))
+                           (when (cdr attr-list)
+                             (dolist (attr-item (cdr attr-list))
+			       (setq output-list (concat output-list  (format ",%s" attr-item)))))
+                           output-list)
+                         "")))
+
+	 (first-line (when lines (org-split-string (car lines) "\t"))))
+    ;; Prepare the final format string for the table.
+
+
+    (cond
+     ;; Others.
+     (lines (concat ".TS\n " table-format ";\n"
+
+                    (format "%s.\n"
+                            (let ((final-line ""))
+                              (when title-line
+                                (dotimes (i (length first-line))
+                                  (setq final-line (concat final-line "cb" divider))))
+
+                              (setq final-line (concat final-line "\n"))
+
+                              (if alignment
+                                  (setq final-line (concat final-line alignment))
+                                (dotimes (i (length first-line))
+                                  (setq final-line (concat final-line "c" divider))))
+                              final-line ))
+
+                    (format "%s.TE\n"
+                            (let ((final-line "")
+                                  (long-line "")
+                                  (lines (org-split-string contents "\n")))
+
+                              (dolist (line-item lines)
+                                (setq long-line "")
+
+                                (if long-cells
+                                    (progn
+                                      (if (string= line-item "_")
+                                          (setq long-line (format "%s\n" line-item))
+                                        ;; else string =
+                                        (let ((cell-item-list (org-split-string line-item "\t")))
+                                          (dolist (cell-item cell-item-list)
+
+                                            (cond  ((eq cell-item (car (last cell-item-list)))
+                                                    (setq long-line (concat long-line
+                                                                            (format "T{\n%s\nT}\t\n"  cell-item ))))
+                                                   (t
+                                                    (setq long-line (concat long-line
+                                                                            (format "T{\n%s\nT}\t"  cell-item ))))))
+					  long-line))
+				      ;; else long cells
+				      (setq final-line (concat final-line long-line )))
+
+                                  (setq final-line (concat final-line line-item "\n"))))
+                              final-line))
+
+                    (and caption (format ".TB \"%s\"" caption)))))))
+
+;;; Table Cell
+
+(defun org-rpkg-table-cell (table-cell contents info)
+  "Transcode a TABLE-CELL element from Org to Rpkg
+CONTENTS is the cell contents.  INFO is a plist used as
+a communication channel."
+    (concat (if (and contents
+                     org-rpkg-table-scientific-notation
+                     (string-match orgtbl-exp-regexp contents))
+                ;; Use appropriate format string for scientific
+                ;; notation.
+              (format org-rpkg-table-scientific-notation
+                        (match-string 1 contents)
+                        (match-string 2 contents))
+              contents )
+            (when (org-export-get-next-element table-cell info) "\t")))
+
+
+;;; Table Row
+
+(defun org-rpkg-table-row (table-row contents info)
+  "Transcode a TABLE-ROW element from Org to Rpkg
+CONTENTS is the contents of the row.  INFO is a plist used as
+a communication channel."
+  ;; Rules are ignored since table separators are deduced from
+  ;; borders of the current row.
+  (when (eq (org-element-property :type table-row) 'standard)
+    (let* ((attr (mapconcat 'identity
+                            (org-element-property
+                             :attr_rpkg (org-export-get-parent table-row))
+                            " "))
+           ;; TABLE-ROW's borders are extracted from its first cell.
+           (borders
+            (org-export-table-cell-borders
+             (car (org-element-contents table-row)) info)))
+      (concat
+       ;; Mark horizontal lines
+       (cond  ((and (memq 'top borders) (memq 'above borders)) "_\n"))
+       contents
+
+       (cond
+        ;; When BOOKTABS are activated enforce bottom rule even when
+        ;; no hline was specifically marked.
+        ((and (memq 'bottom borders) (memq 'below borders)) "\n_")
+        ((memq 'below borders) "\n_"))))))
+
+
+;;; Target
+
+(defun org-rpkg-target (target contents info)
+  "Transcode a TARGET object from Org to Rpkg.
+CONTENTS is nil.  INFO is a plist holding contextual
+information."
+  (format "\\fI%s\\fP"
+          (org-export-solidify-link-text (org-element-property :value target))))
+
+
+;;; Timestamp
+
+(defun org-rpkg-timestamp (timestamp contents info)
+  "Transcode a TIMESTAMP object from Org to Rpkg.
+  CONTENTS is nil.  INFO is a plist holding contextual
+  information."
+  "" )
+
+
+;;; Underline
+
+(defun org-rpkg-underline (underline contents info)
+  "Transcode UNDERLINE from Org to Rpkg.
+CONTENTS is the text with underline markup.  INFO is a plist
+holding contextual information."
+  (format "\\fI%s\\fP" contents))
+
+
+;;; Verbatim
+
+(defun org-rpkg-verbatim (verbatim contents info)
+  "Transcode a VERBATIM object from Org to Rpkg.
+CONTENTS is nil.  INFO is a plist used as a communication
+channel."
+  (format ".nf\n%s\n.fi" contents))
+
+
+;;; Verse Block
+
+(defun org-rpkg-verse-block (verse-block contents info)
+  "Transcode a VERSE-BLOCK element from Org to Rpkg.
+CONTENTS is verse block contents. INFO is a plist holding
+contextual information."
+  (format ".RS\n.ft I\n%s\n.ft\n.RE" contents))
+
+
+
+;;; Interactive functions
+
+(defun org-rpkg-export-to-rpkg
+  (&optional async subtreep visible-only body-only ext-plist)
+  "Export current buffer to a Rpkg file.
+
+If narrowing is active in the current buffer, only export its
+narrowed part.
+
+If a region is active, export that region.
+
+A non-nil optional argument ASYNC means the process should happen
+asynchronously.  The resulting file should be accessible through
+the `org-export-stack' interface.
+
+When optional argument SUBTREEP is non-nil, export the sub-tree
+at point, extracting information from the headline properties
+first.
+
+When optional argument VISIBLE-ONLY is non-nil, don't export
+contents of hidden elements.
+
+When optional argument BODY-ONLY is non-nil, only the body
+without any markers.
+
+EXT-PLIST, when provided, is a property list with external
+parameters overriding Org default settings, but still inferior to
+file-local settings.
+
+Return output file's name."
+  (interactive)
+  (let ((outfile (org-export-output-file-name ".rpkg" subtreep)))
+    (org-export-to-file 'rpkg outfile
+      async subtreep visible-only body-only ext-plist)))
+
+(defun org-rpkg-export-to-pdf
+  (&optional async subtreep visible-only body-only ext-plist)
+  "Export current buffer to Groff then process through to PDF.
+
+If narrowing is active in the current buffer, only export its
+narrowed part.
+
+If a region is active, export that region.
+
+A non-nil optional argument ASYNC means the process should happen
+asynchronously.  The resulting file should be accessible through
+the `org-export-stack' interface.
+
+When optional argument SUBTREEP is non-nil, export the sub-tree
+at point, extracting information from the headline properties
+first.
+
+When optional argument VISIBLE-ONLY is non-nil, don't export
+contents of hidden elements.
+
+When optional argument BODY-ONLY is non-nil, only write between
+markers.
+
+EXT-PLIST, when provided, is a property list with external
+parameters overriding Org default settings, but still inferior to
+file-local settings.
+
+Return PDF file's name."
+  (interactive)
+  (let ((outfile (org-export-output-file-name ".rpkg" subtreep)))
+    (org-export-to-file 'rpkg outfile
+      async subtreep visible-only body-only ext-plist
+      (lambda (file) (org-latex-compile file)))))
+
+(defun org-rpkg-compile (file)
+  "Compile a Groff file.
+
+FILE is the name of the file being compiled.  Processing is done
+through the command specified in `org-rpkg-pdf-process'.
+
+Return PDF file name or an error if it couldn't be produced."
+  (let* ((base-name (file-name-sans-extension (file-name-nondirectory file)))
+	 (full-name (file-truename file))
+	 (out-dir (file-name-directory file))
+	 ;; Properly set working directory for compilation.
+	 (default-directory (if (file-name-absolute-p file)
+				(file-name-directory full-name)
+			      default-directory))
+         errors)
+    (message (format "Processing Groff file %s..." file))
+    (save-window-excursion
+      (cond
+       ;; A function is provided: Apply it.
+       ((functionp org-rpkg-pdf-process)
+	(funcall org-rpkg-pdf-process (shell-quote-argument file)))
+       ;; A list is provided: Replace %b, %f and %o with appropriate
+       ;; values in each command before applying it.  Output is
+       ;; redirected to "*Org PDF Groff Output*" buffer.
+       ((consp org-rpkg-pdf-process)
+	(let ((outbuf (get-buffer-create "*Org PDF Groff Output*")))
+	  (mapc
+	   (lambda (command)
+	     (shell-command
+	      (replace-regexp-in-string
+	       "%b" (shell-quote-argument base-name)
+	       (replace-regexp-in-string
+		"%f" (shell-quote-argument full-name)
+		(replace-regexp-in-string
+		 "%o" (shell-quote-argument out-dir) command t t) t t) t t)
+	      outbuf))
+	   org-rpkg-pdf-process)
+	  ;; Collect standard errors from output buffer.
+	  (setq errors (org-rpkg-collect-errors outbuf))))
+       (t (error "No valid command to process to PDF")))
+      (let ((pdffile (concat out-dir base-name ".pdf")))
+	;; Check for process failure.  Provide collected errors if
+	;; possible.
+	(if (not (file-exists-p pdffile))
+	    (error (concat (format "PDF file %s wasn't produced" pdffile)
+			   (when errors (concat ": " errors))))
+	  ;; Else remove log files, when specified, and signal end of
+	  ;; process to user, along with any error encountered.
+	  (when org-rpkg-remove-logfiles
+	    (dolist (ext org-rpkg-logfiles-extensions)
+	      (let ((file (concat out-dir base-name "." ext)))
+		(when (file-exists-p file) (delete-file file)))))
+	  (message (concat "Process completed"
+			   (if (not errors) "."
+			     (concat " with errors: " errors)))))
+	;; Return output file name.
+	pdffile))))
+
+(defun org-rpkg-collect-errors (buffer)
+  "Collect some kind of errors from \"groff\" output
+BUFFER is the buffer containing output.
+Return collected error types as a string, or nil if there was
+none."
+  (with-current-buffer buffer
+    (save-excursion
+      (goto-char (point-max))
+      ;; Find final run
+      nil )))
+
+
+(provide 'ox-rpkg)
+
+;; Local variables:
+;; generated-autoload-file: "org-loaddefs.el"
+;; End:
+
+;;; ox-rpkg.el ends here

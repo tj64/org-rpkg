@@ -337,7 +337,7 @@ ardec.trend <- function(x){
 
     }
 
-    RETURN(LIST(modulus=m,trend=gt))
+    return(list(modulus=m,trend=gt))
 
 }
 
